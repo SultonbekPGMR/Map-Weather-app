@@ -1,16 +1,18 @@
 package com.sultonbek1547.mapweatherapp
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.sultonbek1547.mapweatherapp.databinding.ActivityMapsBinding
-import com.sultonbek1547.mapweatherapp.models.WeatherData
-import com.sultonbek1547.mapweatherapp.utils.getWeatherData
 import kotlinx.coroutines.*
-import kotlinx.coroutines.Dispatchers.IO
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -30,26 +32,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
     }
 
+    @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.mapType = GoogleMap.MAP_TYPE_HYBRID
 
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        fusedLocationClient.lastLocation.addOnSuccessListener {
+            mMap.addMarker(MarkerOptions().position(LatLng(it.latitude, it.longitude)))
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(LatLng(it.latitude, it.longitude)))
+        }
 
 
 
         mMap.setOnMapClickListener { latLng ->
-            CoroutineScope(IO).launch {
-                val weatherDataDeferred: Deferred<WeatherData?> = async {
-                    getWeatherData(latLng.latitude, latLng.longitude)
+
+            startActivity(
+                Intent(this, WeatherInfoActivity::class.java).apply {
+                    putExtra("latitude", latLng.latitude)
+                    putExtra("longitude", latLng.longitude)
                 }
-            }
-
-            val intent = Intent(this, WeatherInfoActivity::class.java).apply {
-                putExtra("latitude",latLng.latitude)
-                putExtra("longitude",latLng.longitude)
-            }
-            startActivity(intent)
-
+            )
         }
 
     }
